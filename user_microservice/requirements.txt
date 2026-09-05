@@ -6,3 +6,4 @@ passlib[bcrypt]==1.7.4
 faker==19.6.1
 python-dotenv==1.0.0
 email-validator==2.0.0.post2
+PyJWT==2.8.0

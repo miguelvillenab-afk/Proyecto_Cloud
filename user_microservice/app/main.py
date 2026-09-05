@@ -34,3 +34,21 @@ def create_metodo_pago(usuario_id: str, metodo: schemas.MetodoPagoCreate, db: Se
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     return crud.create_metodo_pago(db=db, metodo=metodo, id_usuario=usuario_id)
+
+
+@app.post("/login/")
+def login(credentials: schemas.UsuarioLogin, db: Session = Depends(get_db)):
+    user = crud.authenticate_user(db, email=credentials.email, password=credentials.password)
+    if not user:
+        raise HTTPException(status_code=401, detail="Correo o contraseña incorrectos")
+    
+    # El 'sub' (subject) es el estándar en JWT para identificar al usuario
+    token_data = {"sub": str(user.id_usuario), "rol": user.rol}
+    access_token = crud.create_access_token(data=token_data)
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "usuario_id": user.id_usuario,
+        "rol": user.rol
+    }
