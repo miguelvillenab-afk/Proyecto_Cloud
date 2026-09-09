@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  db_reservations:
+    image: mongo:6
+    ports:
+      - "27018:27017" ##27018 es el puerto local y se mapea al 27017 de mongo (no modificar)
+    volumes:
+      - mongo_data:/data/db
+
+  api_reservations:
+    build: .
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    depends_on:
+      - db_reservations
+
+volumes:
+  mongo_data:
