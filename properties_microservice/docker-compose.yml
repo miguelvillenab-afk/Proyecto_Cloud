@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  db_properties:
+    image: mysql:8.0
+    env_file:
+      - .env
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "3307:3306" ##3307 es el puerto local y se mapea al 3306 de mysql (no modificar)
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+
+  api_properties:
+    build: .
+    ports:
+      - "8081:8081"
+    env_file:
+      - .env
+    depends_on:
+      db_properties:
+        condition: service_healthy
+
+  # Servicio para poblado de 20k registros - se ejecuta DENTRO de la red docker
+  # Usa el .env raiz (DB_HOST=db_properties, DB_PORT=3306) automáticamente
+  seed:
+    image: python:3.11-slim
+    volumes:
+      - ./scripts:/scripts
+    working_dir: /scripts
+    env_file:
+      - .env
+    command: bash -c "pip install -q -r requirements.txt && python generate_fake_data.py"
+    depends_on:
+      db_properties:
+        condition: service_healthy
+    profiles:
+      - seed
+
+volumes:
+  mysql_data:

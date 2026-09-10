@@ -25,7 +25,8 @@ user_microservice/
 ├── Dockerfile           # Imagen python:3.11-slim + uvicorn app.main:app --port 8000
 ├── docker-compose.yml   # Servicios db_users (postgres:15) y api_users (FastAPI)
 ├── requirements.txt     # Dependencias pinneadas
-└── .env                 # NO versionado — CREAR MANUALMENTE (ver sección 2)
+├── .env.example         # Plantilla versionada (copiar como .env)
+└── .env                 # NO versionado — crear con: cp .env.example .env (ver sección 2)
 ```
 
 ### Archivos clave y qué hacen
@@ -42,26 +43,40 @@ user_microservice/
 
 ---
 
-## 2. Variables de entorno (`.env`)
+## 2. Variables de entorno (`.env` / `.env.example`)
 
-Crear `user_microservice/.env` manualmente. Se usa vía `env_file` en **ambos** servicios (`db_users` y `api_users`).
+La plantilla versionada es [`./.env.example`](./.env.example). Cópiala como `.env` y ajusta los valores:
+
+```bash
+cp .env.example .env   # luego edita .env si necesitas cambiar claves
+```
+
+Contenido de referencia de `.env.example` (ver archivo para valores por defecto):
 
 ```env
 # Conexión que usa la API (dentro de Docker el host es el nombre del servicio)
-DATABASE_URL=postgresql://postgres:tu_contraseña@db_users:5432/postgres
+DATABASE_URL=postgresql://admin:secretpassword@db_users:5432/users_db
 
 # Variables que consume la imagen postgres:15 (mismo usuario/clave que arriba)
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=tu_contraseña
-POSTGRES_DB=postgres
+POSTGRES_USER=admin
+POSTGRES_PASSWORD=secretpassword
+POSTGRES_DB=users_db
 
 # Auth JWT (usadas en app/crud.py::create_access_token, con defaults si se omiten)
-JWT_SECRET_KEY=cambia_esta_clave_en_produccion
+JWT_SECRET_KEY=cambia_esta_clave_en_produccion_usar_un_secreto_largo_y_aleatorio
 JWT_ALGORITHM=HS256
 JWT_EXPIRATION_MINUTES=60
 ```
 
-> Sin `.env` el contenedor `api_users` falla (`DATABASE_URL=None` → `create_engine(None)` levanta excepción) y `db_users` arranca con clave aleatoria. Para ejecución manual sin Docker cambia el host a `localhost:5432` (o `localhost:5433` si usas el contenedor de BD): `DATABASE_URL=postgresql://postgres:tu_contraseña@localhost:5433/postgres`.
+| Variable | Obligatoria | Descripción |
+|---|---|---|
+| `DATABASE_URL` | Sí | URL SQLAlchemy que usa FastAPI (`app/database.py:12`). Dentro de Docker `host=db_users:5432`; en local `localhost:5433`. |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | Sí | Credenciales que consume `postgres:15` (`docker-compose.yml:4`). Deben coincidir con `DATABASE_URL`. |
+| `JWT_SECRET_KEY` | Sí (prod) | Clave HS256 para `crud.create_access_token`. Usa un secreto largo/aleatorio en producción. |
+| `JWT_ALGORITHM` | No (default `HS256`) | Algoritmo de firma. |
+| `JWT_EXPIRATION_MINUTES` | No (default `60`) | Expiración del token. |
+
+> Sin `.env` el contenedor `api_users` falla (`DATABASE_URL=None` → `create_engine(None)` levanta excepción) y `db_users` arranca con clave aleatoria. Para ejecución manual sin Docker cambia el host a `localhost:5432` (o `localhost:5433` si usas el contenedor de BD). Ver `DATABASE_URL` comentado al final de `.env.example`.
 
 ---
 
@@ -80,7 +95,8 @@ JWT_EXPIRATION_MINUTES=60
 ```bash
 cd user_microservice
 
-# 1. Crear el .env (ver sección 2)
+# 1. Crear el .env desde la plantilla (ver sección 2)
+cp .env.example .env   # ajusta claves si es necesario
 
 # 2. Construir y levantar (db_users + api_users)
 docker compose up --build
@@ -112,7 +128,9 @@ pip install -r requirements.txt
 # 1. Crear tablas (PostgreSQL local en :5432)
 psql -U postgres -d postgres -f init.sql
 
-# 2. Crear .env apuntando a localhost (ver sección 2)
+# 2. Crear .env desde plantilla y apuntar a localhost (ver sección 2 / .env.example)
+cp .env.example .env
+# Edita DATABASE_URL a: postgresql://admin:secretpassword@localhost:5433/users_db
 
 # 3. Arrancar API
 uvicorn app.main:app --host 0.0.0.0 --port 8000

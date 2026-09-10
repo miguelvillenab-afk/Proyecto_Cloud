@@ -1,0 +1,511 @@
+{
+  "info": {
+    "name": "Proyecto Cloud - Colección General",
+    "description": "Colección Postman general para la Plataforma de Alquiler de Alojamientos (5 microservicios). Generada inspeccionando código fuente y READMEs.\n\nPuertos por microservicio (docker-compose.yml):\n- user_microservice (FastAPI) -> localhost:8000 (DB 5433)\n- properties_microservice (Spring Boot) -> localhost:8081 (DB 3307)\n- reservations_microservice (Express) -> localhost:3000 (DB 27018)\n- dashboard_microservice -> SIN IMPLEMENTAR (placeholder, ver nota)\n- analytics_microservice -> SIN IMPLEMENTAR (placeholder, ver nota)\n\nDocs Swagger:\n- Users: http://localhost:8000/docs\n- Properties: http://localhost:8081/swagger-ui.html\n- Reservations: No tiene Swagger (Express plain)\n\nNotas importantes:\n- user_microservice/app/main.py:16 no expone GET / raiz\n- reservations valida huésped (GET /usuarios/{id} en MS1) y propiedad (GET /properties/{id} en MS2) antes de crear reserva\n- Dashboard y Analytics solo tienen Dockerfile vacío, se dejan carpetas placeholder para completar a futuro.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "user_baseUrl",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "properties_baseUrl",
+      "value": "http://localhost:8081",
+      "type": "string"
+    },
+    {
+      "key": "reservations_baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "dashboard_baseUrl",
+      "value": "http://localhost:8082",
+      "type": "string"
+    },
+    {
+      "key": "analytics_baseUrl",
+      "value": "http://localhost:8083",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - User Microservice (8000) - FastAPI + PostgreSQL",
+      "description": "Microservicio de Gestión de Usuarios, Auth JWT y Pagos. Código: user_microservice/app/main.py:10-54 | user_microservice/app/schemas.py | user_microservice/docker-compose.yml:21 (8000:8000). Swagger: {{user_baseUrl}}/docs",
+      "item": [
+        {
+          "name": "POST Registrar Usuario",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{user_baseUrl}}/usuarios/",
+              "host": ["{{user_baseUrl}}"],
+              "path": ["usuarios", ""]
+            },
+            "description": "Crea usuario con password hasheada en bcrypt. 400 si email ya existe. Fuente: user_microservice/app/main.py:16 y README.md sección 5. Valida EmailStr y rol HUESPED/ANFITRION.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Juan Pérez\",\n  \"email\": \"juan@email.com\",\n  \"password\": \"contraseña123\",\n  \"rol\": \"HUESPED\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Obtener Usuario por UUID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{user_baseUrl}}/usuarios/:usuario_id",
+              "host": ["{{user_baseUrl}}"],
+              "path": ["usuarios", ":usuario_id"],
+              "variable": [
+                {
+                  "key": "usuario_id",
+                  "value": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                  "description": "UUID retornado en POST /usuarios/"
+                }
+              ]
+            },
+            "description": "Retorna UsuarioResponse con metodos_pago anidados. 404 si no existe. Fuente: user_microservice/app/main.py:23"
+          },
+          "response": []
+        },
+        {
+          "name": "POST Añadir Método de Pago",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{user_baseUrl}}/usuarios/:usuario_id/metodos-pago/",
+              "host": ["{{user_baseUrl}}"],
+              "path": ["usuarios", ":usuario_id", "metodos-pago", ""],
+              "variable": [
+                {
+                  "key": "usuario_id",
+                  "value": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                }
+              ]
+            },
+            "description": "Valida que el usuario exista (404 si no). Fuente: user_microservice/app/main.py:30. Body según user_microservice/app/schemas.py:7",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tipo_tarjeta\": \"Visa\",\n  \"ultimos_cuatro\": \"1234\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST Login - Obtener JWT",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{user_baseUrl}}/login/",
+              "host": ["{{user_baseUrl}}"],
+              "path": ["login", ""]
+            },
+            "description": "Verifica email + bcrypt y retorna Bearer token HS256 (payload sub, rol, exp). 401 si falla. Nota: ningún endpoint actual valida el token. Fuente: user_microservice/app/main.py:39 y user_microservice/app/crud.py",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"juan@email.com\",\n  \"password\": \"contraseña123\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Docs Swagger",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{user_baseUrl}}/docs",
+              "host": ["{{user_baseUrl}}"],
+              "path": ["docs"]
+            },
+            "description": "Swagger UI - documentación interactiva FastAPI"
+          },
+          "response": []
+        },
+        {
+          "name": "GET ReDoc",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{user_baseUrl}}/redoc",
+              "host": ["{{user_baseUrl}}"],
+              "path": ["redoc"]
+            },
+            "description": "ReDoc - documentación alternativa FastAPI"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02 - Properties Microservice (8081) - Spring Boot + MySQL",
+      "description": "Catálogo de Propiedades. Código: properties_microservice/src/main/java/com/proyectocloud/properties/controller/PropertyController.java:20 | properties_microservice/src/main/java/com/proyectocloud/properties/dto/PropertyDtos.java | properties_microservice/docker-compose.yml:28 (8081:8081) | properties_microservice/src/main/resources/application.yml:2. Swagger: {{properties_baseUrl}}/swagger-ui.html. No hay capa service, controller -> repository directo.",
+      "item": [
+        {
+          "name": "POST Crear Propiedad",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{properties_baseUrl}}/properties",
+              "host": ["{{properties_baseUrl}}"],
+              "path": ["properties"]
+            },
+            "description": "Crea propiedad en estado ACTIVO (fijado por servidor). idAnfitrion es referencia lógica a MS1 (no validada). Fuente: PropertyController.java:30",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idAnfitrion\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\n  \"titulo\": \"Departamento luminoso en Miraflores\",\n  \"precioNoche\": 150.50,\n  \"capacidad\": 4,\n  \"ubicacion\": {\n    \"pais\": \"Perú\",\n    \"ciudad\": \"Lima\",\n    \"direccion\": \"Av. Larco 123, Miraflores\"\n  }\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Listar Todas las Propiedades",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{properties_baseUrl}}/properties",
+              "host": ["{{properties_baseUrl}}"],
+              "path": ["properties"]
+            },
+            "description": "Lista todas las propiedades con ubicación. Fuente: PropertyController.java:49"
+          },
+          "response": []
+        },
+        {
+          "name": "GET Obtener Propiedad por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{properties_baseUrl}}/properties/:id",
+              "host": ["{{properties_baseUrl}}"],
+              "path": ["properties", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1",
+                  "description": "Long ID autoincremental"
+                }
+              ]
+            },
+            "description": "Obtiene propiedad + ubicación. 404 si no existe. Fuente: PropertyController.java:56"
+          },
+          "response": []
+        },
+        {
+          "name": "PUT Actualizar Propiedad",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{properties_baseUrl}}/properties/:id",
+              "host": ["{{properties_baseUrl}}"],
+              "path": ["properties", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Actualiza propiedad incluyendo estado y ubicación. Fuente: PropertyController.java:61. Requiere estado (ACTIVO/INACTIVO).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Departamento remodelado en Miraflores\",\n  \"precioNoche\": 180.00,\n  \"capacidad\": 5,\n  \"estado\": \"ACTIVO\",\n  \"ubicacion\": {\n    \"pais\": \"Perú\",\n    \"ciudad\": \"Lima\",\n    \"direccion\": \"Av. Larco 456, Miraflores\"\n  }\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "DELETE Borrado Lógico Propiedad",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{properties_baseUrl}}/properties/:id",
+              "host": ["{{properties_baseUrl}}"],
+              "path": ["properties", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Borrado lógico: marca estado=INACTIVO (no elimina fila) para no perder histórico de reservas. Retorna 204 NO_CONTENT. Fuente: PropertyController.java:81"
+          },
+          "response": []
+        },
+        {
+          "name": "GET Swagger UI",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{properties_baseUrl}}/swagger-ui.html",
+              "host": ["{{properties_baseUrl}}"],
+              "path": ["swagger-ui.html"]
+            },
+            "description": "Documentación Swagger Spring Boot"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03 - Reservations Microservice (3000) - Express + MongoDB",
+      "description": "Gestión de Reservas y Reseñas. Valida huésped contra MS1 y propiedad contra MS2 antes de confirmar reserva. Código: reservations_microservice/app/main.js:6 | reservations_microservice/app/routes/reservas.routes.js | reservations_microservice/app/routes/resenas.routes.js | reservations_microservice/docker-compose.yml:14 (3000:3000) + (27018:27017 para Mongo). Env: reservations_microservice/env.example",
+      "item": [
+        {
+          "name": "GET Health - Info Servicio",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{reservations_baseUrl}}/",
+              "host": ["{{reservations_baseUrl}}"],
+              "path": [""]
+            },
+            "description": "Endpoint raíz informativo. Fuente: reservations_microservice/app/main.js:10. Retorna servicio, descripcion, version."
+          },
+          "response": []
+        },
+        {
+          "name": "POST Crear Reserva",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{reservations_baseUrl}}/reservas/",
+              "host": ["{{reservations_baseUrl}}"],
+              "path": ["reservas", ""]
+            },
+            "description": "Crea reserva validando: 1) huésped via GET {{user_baseUrl}}/usuarios/{id} 2) propiedad via GET {{properties_baseUrl}}/properties/{id} obteniendo precio_noche/precioNoche 3) calcula precio_total = noches * precio_noche. Errores: 400 validación, 404 usuario/propiedad no existe, 502/503 falla MS1/MS2. Fuente: reservations_microservice/app/routes/reservas.routes.js:16 y reservations_microservice/app/schemas.js:6. Requiere que MS1 (8000) y MS2 (8081) estén arriba.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_huesped\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\",\n  \"id_propiedad\": 1,\n  \"fecha_checkin\": \"2026-10-15\",\n  \"fecha_checkout\": \"2026-10-20\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Obtener Reserva por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{reservations_baseUrl}}/reservas/:id",
+              "host": ["{{reservations_baseUrl}}"],
+              "path": ["reservas", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "651f1c2e8f1b2a0012345678",
+                  "description": "ObjectId de MongoDB retornado en POST /reservas/"
+                }
+              ]
+            },
+            "description": "Obtiene reserva por ObjectId. 404 si no existe, 400 si formato inválido (CastError). Fuente: reservations_microservice/app/routes/reservas.routes.js:86"
+          },
+          "response": []
+        },
+        {
+          "name": "GET Listar Reservas por Huésped",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{reservations_baseUrl}}/reservas/huesped/:id_huesped",
+              "host": ["{{reservations_baseUrl}}"],
+              "path": ["reservas", "huesped", ":id_huesped"],
+              "variable": [
+                {
+                  "key": "id_huesped",
+                  "value": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                  "description": "UUID del huésped (MS1)"
+                }
+              ]
+            },
+            "description": "Lista todas las reservas de un huésped. IMPORTANTE: definida antes de /:id para evitar colisión con ObjectId. Fuente: reservations_microservice/app/routes/reservas.routes.js:72"
+          },
+          "response": []
+        },
+        {
+          "name": "PATCH Actualizar Estado Reserva",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{reservations_baseUrl}}/reservas/:id/estado",
+              "host": ["{{reservations_baseUrl}}"],
+              "path": ["reservas", ":id", "estado"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "651f1c2e8f1b2a0012345678"
+                }
+              ]
+            },
+            "description": "Actualiza estado: PENDIENTE | CONFIRMADA | CANCELADA | COMPLETADA. 404 si no existe. Fuente: reservations_microservice/app/routes/reservas.routes.js:106 y schemas.js:24",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado_reserva\": \"CANCELADA\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "POST Crear Reseña",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{reservations_baseUrl}}/resenas/",
+              "host": ["{{reservations_baseUrl}}"],
+              "path": ["resenas", ""]
+            },
+            "description": "Crea reseña asociada a reserva existente. id_propiedad e id_huesped se derivan de la reserva (no se confían al cliente). 404 si reserva no existe. Fuente: reservations_microservice/app/routes/resenas.routes.js:13 y schemas.js:31",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id_reserva\": \"651f1c2e8f1b2a0012345678\",\n  \"calificacion\": 5,\n  \"comentario\": \"Excelente lugar, muy limpio.\"\n}"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "GET Listar Reseñas por Propiedad",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{reservations_baseUrl}}/resenas/propiedad/:id_propiedad",
+              "host": ["{{reservations_baseUrl}}"],
+              "path": ["resenas", "propiedad", ":id_propiedad"],
+              "variable": [
+                {
+                  "key": "id_propiedad",
+                  "value": "1",
+                  "description": "Number ID de propiedad (MS2)"
+                }
+              ]
+            },
+            "description": "Lista reseñas de una propiedad. Fuente: reservations_microservice/app/routes/resenas.routes.js:50"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "04 - Dashboard Microservice (PENDIENTE)",
+      "description": "Agregador / Dashboard: servicio intermediario SIN BD propia, consulta síncronamente a MS1, MS2 y MS3 para consolidar info. Descrito en README.md general línea 15 pero dashboard_microservice/ solo contiene Dockerfile vacío (sin código ni README propio ni docker-compose.yml). Carpeta placeholder - completar cuando se implemente. Puerto sugerido: 8082 (no confirmado).",
+      "item": [
+        {
+          "name": "PLACEHOLDER - Dashboard Aggregator (no implementado)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{dashboard_baseUrl}}/dashboard/:usuario_id",
+              "host": ["{{dashboard_baseUrl}}"],
+              "path": ["dashboard", ":usuario_id"],
+              "variable": [
+                {
+                  "key": "usuario_id",
+                  "value": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                }
+              ]
+            },
+            "description": "PLACEHOLDER. Endpoint tentativo que consolidaría usuario + propiedades del anfitrión + reservas. No hay código fuente aún. Crear/ajustar cuando se defina."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "05 - Analytics Microservice (PENDIENTE)",
+      "description": "Consultas Analíticas: provee endpoints REST con métricas/estadísticas ejecutando SQL sobre AWS Athena (boto3). Descrito en README.md general línea 16 pero analytics_microservice/ solo contiene Dockerfile vacío (sin código). Carpeta placeholder. Puerto sugerido: 8083 (no confirmado).",
+      "item": [
+        {
+          "name": "PLACEHOLDER - Analytics Métricas (no implementado)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{analytics_baseUrl}}/analytics/metricas",
+              "host": ["{{analytics_baseUrl}}"],
+              "path": ["analytics", "metricas"]
+            },
+            "description": "PLACEHOLDER. Endpoint tentativo para métricas Athena (ej: ingresos por mes, ocupación, top propiedades). No hay código fuente aún. Ajustar path real cuando se implemente."
+          },
+          "response": []
+        },
+        {
+          "name": "PLACEHOLDER - Analytics Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{analytics_baseUrl}}/",
+              "host": ["{{analytics_baseUrl}}"],
+              "path": [""]
+            },
+            "description": "PLACEHOLDER health check analytics"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
