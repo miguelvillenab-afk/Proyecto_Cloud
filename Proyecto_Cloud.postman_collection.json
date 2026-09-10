@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Proyecto Cloud - Colección General",
-    "description": "Colección Postman general para la Plataforma de Alquiler de Alojamientos (5 microservicios). Generada inspeccionando código fuente y READMEs.\n\nPuertos por microservicio (docker-compose.yml):\n- user_microservice (FastAPI) -> localhost:8000 (DB 5433)\n- properties_microservice (Spring Boot) -> localhost:8081 (DB 3307)\n- reservations_microservice (Express) -> localhost:3000 (DB 27018)\n- dashboard_microservice -> SIN IMPLEMENTAR (placeholder, ver nota)\n- analytics_microservice -> SIN IMPLEMENTAR (placeholder, ver nota)\n\nDocs Swagger:\n- Users: http://localhost:8000/docs\n- Properties: http://localhost:8081/swagger-ui.html\n- Reservations: No tiene Swagger (Express plain)\n\nNotas importantes:\n- user_microservice/app/main.py:16 no expone GET / raiz\n- reservations valida huésped (GET /usuarios/{id} en MS1) y propiedad (GET /properties/{id} en MS2) antes de crear reserva\n- Dashboard y Analytics solo tienen Dockerfile vacío, se dejan carpetas placeholder para completar a futuro.",
+    "description": "Colección Postman general para la Plataforma de Alquiler de Alojamientos (5 microservicios). Generada inspeccionando código fuente y READMEs.\n\nPuertos por microservicio (docker-compose.yml):\n- user_microservice (FastAPI) -> localhost:8000 (DB 5433)\n- properties_microservice (Spring Boot) -> localhost:8081 (DB 3307)\n- reservations_microservice (Express) -> localhost:3000 (DB 27018)\n- history_microservice (FastAPI sin BD, Historial de Viajes) -> localhost:8082\n- analytics_microservice -> SIN IMPLEMENTAR (placeholder, ver nota)\n\nDocs Swagger:\n- Users: http://localhost:8000/docs\n- Properties: http://localhost:8081/swagger-ui.html\n- Reservations: No tiene Swagger (Express plain)\n- History (MS4): http://localhost:8082/docs\n\nNotas importantes:\n- user_microservice/app/main.py:16 no expone GET / raiz\n- reservations valida huésped (GET /usuarios/{id} en MS1) y propiedad (GET /properties/{id} en MS2) antes de crear reserva\n- Historial (MS4) implementado en history_microservice/app/main.py (sin BD): GET /historial/{id_usuario}, GET /historial/{id_usuario}/resumen, GET /historial/reserva/{id_reserva}\n- Analytics solo tiene Dockerfile vacío, se deja carpeta placeholder para completar a futuro.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -21,7 +21,7 @@
       "type": "string"
     },
     {
-      "key": "dashboard_baseUrl",
+      "key": "history_baseUrl",
       "value": "http://localhost:8082",
       "type": "string"
     },
@@ -448,26 +448,111 @@
       ]
     },
     {
-      "name": "04 - Dashboard Microservice (PENDIENTE)",
-      "description": "Agregador / Dashboard: servicio intermediario SIN BD propia, consulta síncronamente a MS1, MS2 y MS3 para consolidar info. Descrito en README.md general línea 15 pero dashboard_microservice/ solo contiene Dockerfile vacío (sin código ni README propio ni docker-compose.yml). Carpeta placeholder - completar cuando se implemente. Puerto sugerido: 8082 (no confirmado).",
+      "name": "04 - History Microservice (8082) - FastAPI sin BD",
+      "description": "Historial de Viajes del Huésped. Agregador sin BD propia: consulta MS1 (GET /usuarios/{id}), MS3 (GET /reservas/huesped/{id} y GET /reservas/{id}) y MS2 (GET /properties/{id} para titulo + ubicacion, sin foto). Código: history_microservice/app/main.py | history_microservice/app/services.py | history_microservice/docker-compose.yml (8082:8082). Swagger: {{history_baseUrl}}/docs. Requiere MS1 (8000), MS3 (3000) y MS2 (8081) levantados.",
       "item": [
         {
-          "name": "PLACEHOLDER - Dashboard Aggregator (no implementado)",
+          "name": "GET Health - Historial",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{dashboard_baseUrl}}/dashboard/:usuario_id",
-              "host": ["{{dashboard_baseUrl}}"],
-              "path": ["dashboard", ":usuario_id"],
+              "raw": "{{history_baseUrl}}/health",
+              "host": ["{{history_baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Health check. Fuente: history_microservice/app/main.py. Retorna {status: ok}."
+          },
+          "response": []
+        },
+        {
+          "name": "GET Info Servicio",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{history_baseUrl}}/",
+              "host": ["{{history_baseUrl}}"],
+              "path": [""]
+            },
+            "description": "Endpoint raíz informativo. Fuente: history_microservice/app/main.py root(). Lista los 3 endpoints del historial."
+          },
+          "response": []
+        },
+        {
+          "name": "GET Historial Completo del Huesped",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{history_baseUrl}}/historial/:id_usuario",
+              "host": ["{{history_baseUrl}}"],
+              "path": ["historial", ":id_usuario"],
               "variable": [
                 {
-                  "key": "usuario_id",
-                  "value": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                  "key": "id_usuario",
+                  "value": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                  "description": "UUID del huésped (MS1)"
                 }
               ]
             },
-            "description": "PLACEHOLDER. Endpoint tentativo que consolidaría usuario + propiedades del anfitrión + reservas. No hay código fuente aún. Crear/ajustar cuando se defina."
+            "description": "Historia del Viajero completa: perfil MS1 + todas las reservas MS3 + propiedad MS2 por cada id_propiedad (titulo, ciudad, pais, direccion). Ordenada por fecha_checkin desc con stats (total_viajes, noches_totales, gasto_total sin CANCELADA, ciudades_visitadas, proximo_viaje). Errores: 404 huésped no existe, 502 MS externo inesperado, 503 MS caído/timeout. Propiedad 404 -> propiedad: null sin tumbar todo. Fuente: history_microservice/app/main.py historial_completo()."
+          },
+          "response": []
+        },
+        {
+          "name": "GET Resumen del Huesped (liviano)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{history_baseUrl}}/historial/:id_usuario/resumen",
+              "host": ["{{history_baseUrl}}"],
+              "path": ["historial", ":id_usuario", "resumen"],
+              "variable": [
+                {
+                  "key": "id_usuario",
+                  "value": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                  "description": "UUID del huésped (MS1)"
+                }
+              ]
+            },
+            "description": "Solo perfil + stats + proximo_viaje, sin llamar a MS2. Ideal para cards/headers. Misma lógica de stats que el historial completo. Fuente: history_microservice/app/main.py historial_resumen()."
+          },
+          "response": []
+        },
+        {
+          "name": "GET Detalle de una Reserva",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{history_baseUrl}}/historial/reserva/:id_reserva",
+              "host": ["{{history_baseUrl}}"],
+              "path": ["historial", "reserva", ":id_reserva"],
+              "variable": [
+                {
+                  "key": "id_reserva",
+                  "value": "651f1c2e8f1b2a0012345678",
+                  "description": "ObjectId de MongoDB retornado en POST /reservas/ (MS3)"
+                }
+              ]
+            },
+            "description": "Detalle rico de 1 viaje: reserva MS3 (GET /reservas/{id}) + huésped MS1 + propiedad MS2. Para modal ver-detalle. IMPORTANTE: definida antes de /historial/{id_usuario} en main.py para que 'reserva' no sea capturado como id_usuario. Errores: 400 id inválido, 404 reserva no existe. Fuente: history_microservice/app/main.py detalle_reserva()."
+          },
+          "response": []
+        },
+        {
+          "name": "GET Docs Swagger",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{history_baseUrl}}/docs",
+              "host": ["{{history_baseUrl}}"],
+              "path": ["docs"]
+            },
+            "description": "Swagger UI - documentación interactiva FastAPI del historial"
           },
           "response": []
         }
