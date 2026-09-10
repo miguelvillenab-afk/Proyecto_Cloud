@@ -60,6 +60,40 @@ con el repositorio (mismo criterio que `main.py` + `crud.py` en el microservicio
 
 ---
 
+## Variables de entorno (`.env` / `.env.example`)
+
+La plantilla versionada es [`./.env.example`](./.env.example). Cópiala como `.env` y ajusta los valores:
+
+```bash
+cp .env.example .env   # luego edita .env si necesitas cambiar claves
+```
+
+Referencia de `.env.example` (ver archivo para valores completos):
+
+```env
+DB_HOST=db_properties
+DB_PORT=3306
+DB_NAME=properties_db
+DB_USER=properties_user
+DB_PASSWORD=properties_password
+MYSQL_ROOT_PASSWORD=rootpassword
+SERVER_PORT=8081
+JPA_DDL_AUTO=update
+```
+
+| Variable | Obligatoria | Descripción |
+|---|---|---|
+| `DB_HOST` | Sí | Host MySQL. En Docker `db_properties` (`docker-compose.yml:5`); en local `localhost` |
+| `DB_PORT` | Sí | Puerto MySQL `3306` interno / `3307` mapeado al host (`docker-compose.yml:14`, `application.yml:9`) |
+| `DB_NAME` / `DB_USER` / `DB_PASSWORD` | Sí | Nombre/BD/credenciales (`application.yml:9-11`) |
+| `MYSQL_ROOT_PASSWORD` | Sí | Clave root para healthcheck `mysqladmin ping` (`docker-compose.yml:19`) |
+| `SERVER_PORT` | No (default `8081`) | Puerto Spring Boot (`application.yml:2`) |
+| `JPA_DDL_AUTO` | No (default `update`) | `update` crea/ajusta tablas si `init.sql` no corrió |
+
+> Para poblado desde host (`scripts/generate_fake_data.py` fuera de Docker) usa `DB_HOST=localhost` y `DB_PORT=3307` — ver `scripts/.env` y sección de poblar datos.
+
+---
+
 ## Requisitos previos
 
 - **Docker** y **Docker Compose** instalados
@@ -69,23 +103,41 @@ con el repositorio (mismo criterio que `main.py` + `crud.py` en el microservicio
 
 ```bash
 cd properties_microservice
-cp .env.example .env      # y ajusta las contraseñas
+cp .env.example .env      # plantilla -> ver sección Variables de entorno
 docker compose up --build
 ```
 
-- API: `http://localhost:8081`
-- MySQL expuesto en el host: `localhost:3307`
+- API: `http://localhost:8081` (`SERVER_PORT`)
+- MySQL expuesto en el host: `localhost:3307` (`3307:3306` en `docker-compose.yml:14`)
 
 ## Poblar datos de prueba (20,000 registros)
+
+### Opción A — Dentro de Docker (recomendado, usa la red interna)
+
+```bash
+# Usa el servicio `seed` definido en docker-compose.yml (profile seed)
+docker compose --profile seed run --rm seed
+# o manualmente con el compose ya levantado:
+docker compose up -d
+docker compose exec api_properties python scripts/generate_fake_data.py
+```
+
+El servicio `seed` reutiliza automáticamente el `.env` raíz (`DB_HOST=db_properties`, `DB_PORT=3306`) — ver `docker-compose.yml:35`.
+
+### Opción B — Desde el host
 
 ```bash
 cd scripts
 pip install -r requirements.txt
-# Crea un .env en scripts/ (o exporta las variables) con los mismos datos que el .env de arriba
+# El script lee DB_HOST/DB_PORT del .env del host: MySQL expuesto en localhost:3307
+# Crea scripts/.env o exporta variables (ver scripts/.env de ejemplo con DB_HOST=localhost, DB_PORT=3307):
+cp ../.env.example .env   # y ajusta DB_HOST=localhost, DB_PORT=3307
+# o usa el archivo ya preparado:
+cat ../scripts/.env
 python generate_fake_data.py
 ```
 
-Genera `propiedades` con anfitriones aleatorios y su `ubicacion` 1:1 correspondiente.
+Genera `propiedades` con anfitriones aleatorios y su `ubicacion` 1:1 correspondiente (`scripts/generate_fake_data.py`).
 
 ## Notas para el despliegue en AWS
 
