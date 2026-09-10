@@ -1,11 +1,19 @@
 import os
 import random
+import time
+from pathlib import Path
 
 import mysql.connector
 from faker import Faker
 from dotenv import load_dotenv
 
-load_dotenv()
+# Carga .env para soportar ambos modos:
+# 1) Host: scripts/.env (DB_HOST=localhost, DB_PORT=3307)
+# 2) Docker/Root: .env en properties_microservice/ (DB_HOST=db_properties, DB_PORT=3306)
+# Se intenta en orden, sin sobrescribir variables ya definidas.
+base_dir = Path(__file__).resolve().parent
+load_dotenv(base_dir / ".env", override=False)
+load_dotenv(base_dir.parent / ".env", override=False)
 
 fake = Faker(["es_ES", "es_MX"])
 
@@ -14,14 +22,28 @@ TAMANO_LOTE = 5000
 ESTADOS = ["ACTIVO", "INACTIVO"]
 
 
-def get_connection():
-    return mysql.connector.connect(
-        host=os.getenv("DB_HOST", "localhost"),
-        port=int(os.getenv("DB_PORT", "3307")),
-        database=os.getenv("DB_NAME", "properties_db"),
-        user=os.getenv("DB_USER", "properties_user"),
-        password=os.getenv("DB_PASSWORD", "changeme"),
-    )
+def get_connection(max_retries=30, delay=2):
+    """Conecta a MySQL con reintentos - espera a que docker healthcheck pase."""
+    last_err = None
+    for attempt in range(1, max_retries + 1):
+        try:
+            conn = mysql.connector.connect(
+                host=os.getenv("DB_HOST", "localhost"),
+                port=int(os.getenv("DB_PORT", "3307")),
+                database=os.getenv("DB_NAME", "properties_db"),
+                user=os.getenv("DB_USER", "properties_user"),
+                password=os.getenv("DB_PASSWORD", "properties_password"),
+            )
+            if attempt > 1:
+                print(f"Conectado a MySQL en intento {attempt}")
+            return conn
+        except mysql.connector.Error as e:
+            last_err = e
+            print(f"[{attempt}/{max_retries}] MySQL no listo ({e}), reintentando en {delay}s...")
+            time.sleep(delay)
+    print(f"Error: no se pudo conectar a MySQL tras {max_retries} intentos")
+    print(f"Verifica .env -> DB_HOST={os.getenv('DB_HOST')} DB_PORT={os.getenv('DB_PORT')} DB_NAME={os.getenv('DB_NAME')} DB_USER={os.getenv('DB_USER')}")
+    raise last_err
 
 
 def populate_data():
