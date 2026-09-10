@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db_users:
     image: postgres:15
@@ -10,6 +8,12 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   api_users:
     build: .
@@ -18,7 +22,9 @@ services:
     env_file:
       - .env
     depends_on:
-      - db_users
+      db_users:
+        condition: service_healthy
+    restart: on-failure:5
 
 volumes:
   postgres_data:

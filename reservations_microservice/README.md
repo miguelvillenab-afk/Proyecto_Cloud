@@ -31,8 +31,8 @@ reservations_microservice/
 ├── package.json             # Dependencias de Node.js
 ├── Dockerfile                # Imagen Docker del microservicio
 ├── docker-compose.yml        # Orquestación de contenedores
-├── .env.example               # Plantilla de variables de entorno
-└── .env                       # Variables de entorno (CREAR MANUALMENTE)
+├── .env.example               # Plantilla versionada (copiar como .env) — ver sección Variables de entorno
+└── .env                       # NO versionado — crear con: cp .env.example .env
 ```
 
 ---
@@ -45,18 +45,37 @@ reservations_microservice/
 
 ---
 
-## Variables de entorno
+## Variables de entorno (`.env` / `.env.example`)
 
-Copia `.env.example` a `.env` dentro de `reservations_microservice/` y ajusta los valores:
+La plantilla versionada es [`./.env.example`](./.env.example). Cópiala como `.env` y ajusta los valores:
+
+```bash
+cp .env.example .env   # luego edita .env si necesitas cambiar URLs
+```
+
+Referencia de `.env.example` (ver archivo para valores completos):
 
 ```env
 PORT=3000
 MONGODB_URI=mongodb://db_reservations:27017/reservations_db
-USER_SERVICE_URL=http://api_users:8000
-PROPERTY_SERVICE_URL=http://api_properties:8080
+
+# Opción A — microservicios en compose separado / host (recomendado)
+USER_SERVICE_URL=http://host.docker.internal:8000
+PROPERTY_SERVICE_URL=http://host.docker.internal:8081
+
+# Opción B — si unes los 3 compose en una misma red externa
+# USER_SERVICE_URL=http://api_users:8000
+# PROPERTY_SERVICE_URL=http://api_properties:8081
 ```
 
-> **Nota:** `db_reservations` es el nombre del servicio Mongo dentro de la red de Docker Compose de este microservicio. `api_users` y `api_properties` deben ser resolubles desde este contenedor (por ejemplo, conectando ambos `docker-compose.yml` a una misma red externa de Docker, o usando la IP/host real de cada servicio en despliegue).
+| Variable | Obligatoria | Descripción |
+|---|---|---|
+| `PORT` | No (default `3000`) | Puerto Express (`server.js:6`, `docker-compose.yml:13`) |
+| `MONGODB_URI` | Sí | URI Mongoose. En Docker `db_reservations:27017`; en local `localhost:27018` (`app/database.js`, `docker-compose.yml:7`) |
+| `USER_SERVICE_URL` | Sí | URL base MS1. En compose separado `http://host.docker.internal:8000` (MS1 `user_microservice` en `:8000`); en red compartida `http://api_users:8000` (`app/services.js`) |
+| `PROPERTY_SERVICE_URL` | Sí | URL base MS2. En compose separado `http://host.docker.internal:8081` (MS2 `properties_microservice` en `:8081`); en red compartida `http://api_properties:8081` |
+
+> **Nota:** `db_reservations` es el nombre del servicio Mongo dentro de la red de Docker Compose de este microservicio. Las opciones `host.docker.internal` requieren `extra_hosts: host-gateway` si usas Linux (ver `.env` actual). Si conectas los 3 `docker-compose.yml` a una misma red externa Docker, usa los nombres de servicio `api_users`/`api_properties`. En AWS usa la IP/host real de cada MV.
 
 ---
 
@@ -64,7 +83,9 @@ PROPERTY_SERVICE_URL=http://api_properties:8080
 
 ```bash
 cd reservations_microservice
-docker-compose up --build
+cp .env.example .env   # plantilla -> ver sección Variables de entorno
+docker compose up --build
+# o en versiones antiguas: docker-compose up --build
 ```
 
 Esto hará lo siguiente:
@@ -131,11 +152,11 @@ Esto inserta **20,000 reservas ficticias** en bloques de 5,000, con `id_huesped`
 Al crear una reserva (`POST /reservas/`), el microservicio ejecuta, en orden:
 
 1. **Validación del huésped (MS1):** `GET {USER_SERVICE_URL}/usuarios/{id_huesped}`. Si responde `404`, la reserva se rechaza con `404` y el detalle "El usuario (huésped) no existe".
-2. **Validación de la propiedad (MS2):** `GET {PROPERTY_SERVICE_URL}/propiedades/{id_propiedad}`. Se espera un JSON con al menos el campo `precio_noche`. Si responde `404`, la reserva se rechaza con `404` y el detalle "La propiedad no existe".
+2. **Validación de la propiedad (MS2):** `GET {PROPERTY_SERVICE_URL}/properties/{id_propiedad}`. Se espera un JSON con al menos el campo `precioNoche`/`precio_noche`. Si responde `404`, la reserva se rechaza con `404` y el detalle "La propiedad no existe".
 3. **Cálculo del valor de la reserva:** `precio_total = noches_solicitadas * precio_noche`, redondeado a 2 decimales.
 4. **Errores de comunicación:** si el MS1 o el MS2 no responden (timeout, servicio caído), se devuelve `503`. Si responden con un código HTTP inesperado distinto de 404, se devuelve `502`.
 
-> **Supuesto documentado:** como el `properties_microservice` (MS2, Java/Spring Boot) aún no forma parte de este repositorio, se asumió el contrato `GET /propiedades/{id}` devolviendo `precio_noche` según lo descrito en las especificaciones del proyecto. Si el MS2 real usa otro nombre de campo (p. ej. `precioNoche`) o ruta distinta, ajustar `app/services.js` (la función ya intenta ambos nombres de campo) y la variable `PROPERTY_SERVICE_URL`.
+> **Contrato MS2:** `properties_microservice` expone `GET /properties/{id}` con campo `precioNoche` (Java camelCase). El cliente `app/services.js` ya tolera ambos nombres (`precio_noche ?? precioNoche`). Si el MS2 cambia de ruta/nombre, ajustar `PROPERTY_SERVICE_URL` y `app/services.js`.
 
 ---
 

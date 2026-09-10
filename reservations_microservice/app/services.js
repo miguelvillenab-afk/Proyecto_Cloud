@@ -55,18 +55,13 @@ async function getUsuario(idUsuario) {
 }
 
 /**
- * Valida una propiedad contra el MS2 (Catálogo de Propiedades).
- *
- * NOTA: el MS2 (Java / Spring Boot) todavía no está incluido en este
- * repositorio, por lo que se asume el contrato descrito en las
- * especificaciones: GET /propiedades/{id_propiedad} devolviendo un JSON
- * que incluye, como mínimo, "precio_noche". Si el equipo del MS2 expone
- * un nombre de campo distinto (p.ej. "precioNoche"), ajustar el mapeo
- * en el controlador de reservas o normalizar aquí.
+ * Valida una propiedad contra el MS2 (Catálogo de Propiedades, Spring Boot).
+ * Contrato real: GET /properties/{id} devolviendo JSON con "precioNoche"
+ * (se acepta también "precio_noche" por compatibilidad).
  */
 async function getPropiedad(idPropiedad) {
   try {
-    const { data } = await axios.get(`${PROPERTY_SERVICE_URL}/propiedades/${idPropiedad}`, {
+    const { data } = await axios.get(`${PROPERTY_SERVICE_URL}/properties/${idPropiedad}`, {
       timeout: REQUEST_TIMEOUT_MS
     });
     return data;
