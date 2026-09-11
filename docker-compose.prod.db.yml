@@ -1,13 +1,14 @@
 # docker-compose.prod.db.yml — corre SOLO en la 3ra MV (MV-DB privada)
-# No publica puertos al exterior. Solo expone dentro de la VPC.
+# Publica a nivel host, el SG de AWS filtra (solo 172.31.0.0/16).
+# expose solo sirve dentro del mismo host, por eso usamos ports.
 # Uso en MV-DB: docker compose -f docker-compose.prod.db.yml --env-file .env.prod up -d --build
 services:
   db_users:
     image: postgres:15
     env_file:
       - .env.prod
-    expose:
-      - "5432"
+    ports:
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./user_microservice/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
@@ -28,8 +29,8 @@ services:
       MYSQL_USER: ${DB_USER}
       MYSQL_PASSWORD: ${DB_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-    expose:
-      - "3306"
+    ports:
+      - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
       - ./properties_microservice/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
@@ -43,8 +44,8 @@ services:
 
   db_reservations:
     image: mongo:6
-    expose:
-      - "27017"
+    ports:
+      - "27017:27017"
     volumes:
       - mongo_data:/data/db
     restart: unless-stopped
