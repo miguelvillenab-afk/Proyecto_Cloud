@@ -1,9 +1,10 @@
 # docker-compose.prod.app.yml — corre IGUAL en app-1 y app-2 (2 MV producción)
 # Las 5 APIs. Sin BDs locales. Apuntan a la IP privada de MV-DB vía .env.prod (DB_HOST_PRIVADO).
-# Comunicación interna MS3/MS4 por nombres de servicio (api_users, api_properties, api_reservations).
+# Comunicación interna MS3/MS4 por nombres de servicio con GUION (api-users, ...).
+# OJO: guion bajo (api_users) rompe Tomcat/Spring con 400 Bad Request por Host inválido.
 # Uso en cada MV-APP: docker compose -f docker-compose.prod.app.yml --env-file .env.prod up -d --build
 services:
-  api_users:
+  api-users:
     build: ./user_microservice
     ports:
       - "8000:8000"
@@ -13,7 +14,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DB_HOST_PRIVADO}:5432/${POSTGRES_DB}
     restart: unless-stopped
 
-  api_properties:
+  api-properties:
     build: ./properties_microservice
     ports:
       - "8081:8081"
@@ -28,7 +29,7 @@ services:
       SERVER_PORT: 8081
     restart: unless-stopped
 
-  api_reservations:
+  api-reservations:
     build: ./reservations_microservice
     ports:
       - "3000:3000"
@@ -37,14 +38,14 @@ services:
     environment:
       PORT: 3000
       MONGODB_URI: mongodb://${DB_HOST_PRIVADO}:27017/reservations_db
-      USER_SERVICE_URL: http://api_users:8000
-      PROPERTY_SERVICE_URL: http://api_properties:8081
+      USER_SERVICE_URL: http://api-users:8000
+      PROPERTY_SERVICE_URL: http://api-properties:8081
     depends_on:
-      - api_users
-      - api_properties
+      - api-users
+      - api-properties
     restart: unless-stopped
 
-  api_history:
+  api-history:
     build: ./history_microservice
     ports:
       - "8082:8082"
@@ -52,16 +53,16 @@ services:
       - .env.prod
     environment:
       PORT: 8082
-      USER_SERVICE_URL: http://api_users:8000
-      RESERVATIONS_SERVICE_URL: http://api_reservations:3000
-      PROPERTY_SERVICE_URL: http://api_properties:8081
+      USER_SERVICE_URL: http://api-users:8000
+      RESERVATIONS_SERVICE_URL: http://api-reservations:3000
+      PROPERTY_SERVICE_URL: http://api-properties:8081
     depends_on:
-      - api_users
-      - api_reservations
-      - api_properties
+      - api-users
+      - api-reservations
+      - api-properties
     restart: unless-stopped
 
-  api_analytics:
+  api-analytics:
     build: ./analytics_microservice
     ports:
       - "8003:8003"
