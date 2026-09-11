@@ -11,16 +11,16 @@ from datetime import datetime
 import boto3
 import psycopg2
 
-# --- Configuración de conexión a PostgreSQL (MS1) ---
-DB_HOST = "localhost"      # Desde tu máquina local, usa localhost
-DB_PORT = "5433"           # Puerto mapeado que vimos en docker ps
+# Configuración de conexión a PostgreSQL (MS1) 
+DB_HOST = "localhost"      
+DB_PORT = "5433"          
 DB_NAME = "users_db"
 DB_USER = "admin"
 DB_PASSWORD = "secretpassword"
 
-# --- Configuración de S3 ---
+# Configuración de S3 
 BUCKET_NAME = "analytics-proyecto-cloud-aguirre"
-S3_PREFIX = "raw/usuarios"  # Carpeta dentro del bucket
+S3_PREFIX = "raw/usuarios"  
 
 
 def extraer_usuarios():
