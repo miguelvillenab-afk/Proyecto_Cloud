@@ -19,6 +19,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/properties")
+@CrossOrigin(origins = "*")
 public class PropertyController {
 
     private final PropertyRepository propertyRepository;

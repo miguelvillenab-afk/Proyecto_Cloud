@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List
 from . import models, schemas, crud
@@ -11,6 +12,14 @@ app = FastAPI(
     title="API de Gestión de Usuarios (Microservicio 1)",
     description="Microservicio de perfiles, autenticación y métodos de pago.",
     version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.post("/usuarios/", response_model=schemas.UsuarioResponse)
