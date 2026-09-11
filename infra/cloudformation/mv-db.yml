@@ -1,0 +1,79 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "MV-DB (db-1) - Solo BDs privadas. Misma AMI del profe. Sin puertos de API."
+
+Parameters:
+  InstanceName:
+    Type: String
+    Default: "db-1"
+    Description: "Nombre fijo db-1"
+  AMI:
+    Type: String
+    Default: "ami-0b33d2f1547e52c78"
+    Description: "Misma AMI del profe con docker"
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: "Subnet distinta a las app, ej us-east-1c subnet-08842c267999fb2f9"
+  KeyName:
+    Type: String
+    Default: "vockey"
+  # CIDR permitido para las BDs. En Lab VPC suele ser 172.31.0.0/16.
+  # Verifica en VPC -> Sus VPC -> tu vpc -> CIDR y ajustalo al lanzar.
+  AllowedCidr:
+    Type: String
+    Default: "172.31.0.0/16"
+    Description: "Solo esta red puede hablar a 5432/3306/27017. Simula 'privada' en Academy."
+
+Resources:
+  DbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "MV-DB: solo SSH admin + 3 BDs desde la VPC, nada publico de APIs"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: !Ref AllowedCidr
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          CidrIp: !Ref AllowedCidr
+        - IpProtocol: tcp
+          FromPort: 27017
+          ToPort: 27017
+          CidrIp: !Ref AllowedCidr
+
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Ref InstanceName
+        - Key: Project
+          Value: Proyecto_Cloud
+        - Key: Role
+          Value: db
+      ImageId: !Ref AMI
+      InstanceType: t3.micro
+      KeyName: !Ref KeyName
+      SubnetId: !Ref SubnetId
+      SecurityGroupIds:
+        - !Ref DbSecurityGroup
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: 30
+            VolumeType: gp3
+
+Outputs:
+  InstanceId:
+    Value: !Ref EC2Instance
+  InstancePrivateIP:
+    Description: "IP privada -> este valor va en .env.prod como DB_HOST_PRIVADO"
+    Value: !GetAtt EC2Instance.PrivateIp
+  InstancePublicIP:
+    Description: "Solo para instalar, no exponer BDs por ahi"
+    Value: !GetAtt EC2Instance.PublicIp

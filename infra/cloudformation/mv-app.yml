@@ -1,0 +1,87 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "MV-APP (app-1/app-2) - Basada en plantilla del profe + puertos del proyecto. AMI Cloud9Ubuntu22 con docker."
+
+Parameters:
+  InstanceName:
+    Type: String
+    Default: "app-1"
+    Description: "Nombre: app-1 o app-2"
+  AMI:
+    Type: String
+    Default: "ami-0b33d2f1547e52c78"
+    Description: "AMI del profe Cloud9Ubuntu22-2026 con docker"
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: "Subnet del Lab VPC. Usa 1a para app-1 y 1b para app-2 (ej subnet-012b08e4cad897563)"
+  KeyName:
+    Type: String
+    Default: "vockey"
+    Description: "Key de Academy, no cambiar"
+
+Resources:
+  AppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "MV-APP: SSH+HTTP profe + 5 APIs del proyecto"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 8000
+          ToPort: 8000
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 8081
+          ToPort: 8081
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 8082
+          ToPort: 8082
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 8003
+          ToPort: 8003
+          CidrIp: 0.0.0.0/0
+
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Ref InstanceName
+        - Key: Project
+          Value: Proyecto_Cloud
+        - Key: Role
+          Value: app
+      ImageId: !Ref AMI
+      InstanceType: t3.micro
+      KeyName: !Ref KeyName
+      SubnetId: !Ref SubnetId
+      SecurityGroupIds:
+        - !Ref AppSecurityGroup
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            VolumeSize: 20
+            VolumeType: gp3
+
+Outputs:
+  InstanceId:
+    Description: "ID EC2"
+    Value: !Ref EC2Instance
+  InstancePublicIP:
+    Description: "IP publica (temporal para instalar, luego solo ALB)"
+    Value: !GetAtt EC2Instance.PublicIp
+  InstancePrivateIP:
+    Description: "IP privada (para ALB target groups)"
+    Value: !GetAtt EC2Instance.PrivateIp
