@@ -20,13 +20,14 @@ const reservaCreateSchema = Joi.object({
   })
 });
 
-// --- Esquema para actualizar el estado de una reserva ---
-const reservaEstadoUpdateSchema = Joi.object({
+// --- Esquema para reemplazar una reserva (PUT) ---
+// PUT reemplaza el recurso completo: exige los mismos campos que la creación.
+// estado_reserva es opcional; si no se envía, se conserva el valor actual.
+const reservaUpdateSchema = reservaCreateSchema.keys({
   estado_reserva: Joi.string()
     .valid('PENDIENTE', 'CONFIRMADA', 'CANCELADA', 'COMPLETADA')
-    .required()
+    .optional()
 });
-
 // --- Esquema para crear una reseña ---
 const resenaCreateSchema = Joi.object({
   id_reserva: Joi.string().length(24).hex().required().messages({
@@ -39,6 +40,6 @@ const resenaCreateSchema = Joi.object({
 
 module.exports = {
   reservaCreateSchema,
-  reservaEstadoUpdateSchema,
+  reservaUpdateSchema,
   resenaCreateSchema
 };
