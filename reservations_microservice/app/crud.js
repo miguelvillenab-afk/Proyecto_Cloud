@@ -43,11 +43,13 @@ async function getResenasByPropiedad(idPropiedad) {
   return Resena.find({ id_propiedad: idPropiedad }).sort({ fecha_creacion: -1 });
 }
 
+
 module.exports = {
   createReserva,
   getReservaById,
   getReservasByHuesped,
-  updateEstadoReserva,
+  replaceReserva,
+  cancelReserva,
   createResena,
   getResenasByPropiedad
 };
