@@ -1,0 +1,9 @@
+# Dockerfile.ingesta — contenedor de ingesta MS1 -> S3 (1 de los 3).
+# Build: docker build -f analytics_microservice/Dockerfile.ingesta -t ingesta-usuarios ./analytics_microservice
+# Run en MV ingesta/BD: docker run --rm --env-file .env.prod -e DB_PORT_USERS=5432 ingesta-usuarios
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY ingesta_usuarios.py .
+CMD ["python", "ingesta_usuarios.py"]

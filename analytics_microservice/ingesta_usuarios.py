@@ -6,21 +6,26 @@ y los sube como archivo CSV a un bucket S3.
 
 import csv
 import io
-from datetime import datetime
+import os
+from datetime import datetime, timezone
 
 import boto3
 import psycopg2
+from dotenv import load_dotenv
 
-# Configuración de conexión a PostgreSQL (MS1) 
-DB_HOST = "localhost"      
-DB_PORT = "5433"          
-DB_NAME = "users_db"
-DB_USER = "admin"
-DB_PASSWORD = "secretpassword"
+load_dotenv()
+load_dotenv(".env.prod", override=False)
 
-# Configuración de S3 
-BUCKET_NAME = "analytics-proyecto-cloud-aguirre"
-S3_PREFIX = "raw/usuarios"  
+# Local por defecto (localhost:5433), en AWS usa .env.prod (172.31.21.204:5432).
+DB_HOST = os.getenv("DB_HOST_PRIVADO", os.getenv("DB_HOST", "localhost"))
+DB_PORT = os.getenv("DB_PORT_USERS", os.getenv("DB_PORT", "5433"))
+DB_NAME = os.getenv("POSTGRES_DB", "users_db")
+DB_USER = os.getenv("POSTGRES_USER", "admin")
+DB_PASSWORD = os.getenv("POSTGRES_PASSWORD", "secretpassword")
+
+# Configuración de S3
+BUCKET_NAME = os.getenv("S3_BUCKET", "analytics-proyecto-cloud-aguirre")
+S3_PREFIX = os.getenv("S3_PREFIX_USUARIOS", "raw/usuarios")
 
 
 def extraer_usuarios():
@@ -62,7 +67,7 @@ def subir_a_s3(csv_data):
     print("Conectando a S3...")
     s3 = boto3.client("s3")
 
-    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     key = f"{S3_PREFIX}/usuarios_{timestamp}.csv"
 
     print(f"Subiendo archivo a s3://{BUCKET_NAME}/{key} ...")
