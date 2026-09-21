@@ -1,0 +1,6 @@
+/app/src/main/java/com/proyectocloud/properties/PropertiesApplication.java
+/app/src/main/java/com/proyectocloud/properties/controller/PropertyController.java
+/app/src/main/java/com/proyectocloud/properties/dto/PropertyDtos.java
+/app/src/main/java/com/proyectocloud/properties/entity/Location.java
+/app/src/main/java/com/proyectocloud/properties/entity/Property.java
+/app/src/main/java/com/proyectocloud/properties/repository/PropertyRepository.java

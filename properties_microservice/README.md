@@ -44,10 +44,60 @@ con el repositorio (mismo criterio que `main.py` + `crud.py` en el microservicio
 | Método | Ruta | Descripción |
 |---|---|---|
 | POST | `/properties` | Crear propiedad (nace en estado `ACTIVO`) |
-| GET | `/properties` | Listar todas las propiedades |
+| GET | `/properties?page=0&size=20&sortBy=id&direction=asc&estado=ACTIVO` | Listar propiedades **con paginación** (ver detalle abajo) |
 | GET | `/properties/{id}` | Obtener propiedad + ubicación |
 | PUT | `/properties/{id}` | Actualizar propiedad (incluye `estado` y ubicación) |
 | DELETE | `/properties/{id}` | Borrado lógico (`estado = INACTIVO`) |
+
+### Paginación de `GET /properties` (nuevo)
+
+Antes devolvía las 20,000 propiedades de golpe y colgaba el frontend. Ahora devuelve una página:
+
+```
+GET /properties?page=0&size=20&sortBy=id&direction=asc&estado=ACTIVO
+```
+
+| Parámetro | Default | Reglas |
+|---|---|---|
+| `page` | `0` | Base 0. `0` = primera página. `>= 0`, si no → `400` |
+| `size` | `20` | `1` a `100` máx (si pides más → `400`). Recomendado `12/20/50` para el frontend |
+| `sortBy` | `id` | Permitidos: `id`, `titulo`, `precioNoche`, `capacidad`, `estado`, `idAnfitrion`. Otro valor → `400` |
+| `direction` | `asc` | `asc` o `desc`. Otro valor → `400` |
+| `estado` | (todos) | Opcional. `ACTIVO` / `INACTIVO`. Útil para no mostrar borrados lógicos |
+
+Respuesta:
+
+```json
+{
+  "content": [
+    {
+      "id": 1,
+      "idAnfitrion": "a1b2c3d4-...",
+      "titulo": "Departamento luminoso en Miraflores",
+      "precioNoche": 150.50,
+      "capacidad": 4,
+      "estado": "ACTIVO",
+      "ubicacion": { "pais": "Perú", "ciudad": "Lima", "direccion": "Av. Larco 123" }
+    }
+  ],
+  "page": 0,
+  "size": 20,
+  "totalElements": 20000,
+  "totalPages": 1000,
+  "first": true,
+  "last": false,
+  "hasNext": true,
+  "hasPrevious": false
+}
+```
+
+Guía rápida para frontend:
+- Primera carga: `GET /properties?page=0&size=20&estado=ACTIVO`
+- Página siguiente: usa `hasNext`; si `true`, pide `page + 1`. Anterior: usa `hasPrevious`.
+- Texto "Página X de Y": `page + 1` (el back usa base 0) de `totalPages`.
+- Total "20,000 alojamientos": `totalElements`.
+- Deshabilita "Anterior" si `first == true`, "Siguiente" si `last == true`.
+- `GET /properties/{id}` **no cambió**: sigue devolviendo un objeto único (lo usan Reservas e Historial).
 
 ## Decisiones de implementación (no exigidas literalmente por la spec)
 

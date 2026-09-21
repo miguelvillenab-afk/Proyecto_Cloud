@@ -38,4 +38,25 @@ public class PropertyDtos {
             String estado,
             LocationDto ubicacion
     ) {}
+
+    /**
+     * Envelope paginado para GET /properties.
+     * Contiene todo lo que el frontend necesita para renderizar
+     * controles de paginación sin hacer peticiones extra:
+     * - content: items de la página actual
+     * - page/size: eco de lo pedido (page base 0)
+     * - totalElements/totalPages: para "Página X de Y" y "20,000 resultados"
+     * - first/last/hasNext/hasPrevious: para habilitar/deshabilitar botones
+     */
+    public record PagedPropertyResponse(
+            java.util.List<PropertyResponse> content,
+            int page,
+            int size,
+            long totalElements,
+            int totalPages,
+            boolean first,
+            boolean last,
+            boolean hasNext,
+            boolean hasPrevious
+    ) {}
 }
