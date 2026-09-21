@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS propiedades (
-    id_propiedad   INT AUTO_INCREMENT PRIMARY KEY,
+    id_propiedad   BIGINT AUTO_INCREMENT PRIMARY KEY,
     id_anfitrion   VARCHAR(255)   NOT NULL,
     titulo         VARCHAR(200)   NOT NULL,
     precio_noche   DECIMAL(10,2)  NOT NULL,
@@ -8,8 +8,8 @@ CREATE TABLE IF NOT EXISTS propiedades (
 );
 
 CREATE TABLE IF NOT EXISTS ubicaciones (
-    id_ubicacion   INT AUTO_INCREMENT PRIMARY KEY,
-    id_propiedad   INT NOT NULL UNIQUE,
+    id_ubicacion   BIGINT AUTO_INCREMENT PRIMARY KEY,
+    id_propiedad   BIGINT NOT NULL UNIQUE,
     pais           VARCHAR(100) NOT NULL,
     ciudad         VARCHAR(100) NOT NULL,
     direccion      VARCHAR(255) NOT NULL,

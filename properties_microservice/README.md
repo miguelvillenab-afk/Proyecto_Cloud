@@ -48,6 +48,7 @@ con el repositorio (mismo criterio que `main.py` + `crud.py` en el microservicio
 | GET | `/properties/{id}` | Obtener propiedad + ubicación |
 | PUT | `/properties/{id}` | Actualizar propiedad (incluye `estado` y ubicación) |
 | DELETE | `/properties/{id}` | Borrado lógico (`estado = INACTIVO`) |
+| GET | `/health` | Health check para el ALB Target Group (no toca la BD, responde `{"status":"UP"}`) |
 
 ### Paginación de `GET /properties` (nuevo)
 

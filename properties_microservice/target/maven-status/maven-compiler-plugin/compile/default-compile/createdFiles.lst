@@ -1,11 +1,12 @@
+com/proyectocloud/properties/controller/HealthController.class
 com/proyectocloud/properties/repository/PropertyRepository.class
-com/proyectocloud/properties/dto/PropertyDtos$PropertyResponse.class
 com/proyectocloud/properties/controller/PropertyController.class
 com/proyectocloud/properties/entity/Location.class
-com/proyectocloud/properties/dto/PropertyDtos$LocationDto.class
 com/proyectocloud/properties/dto/PropertyDtos$PropertyCreateRequest.class
 com/proyectocloud/properties/dto/PropertyDtos$PagedPropertyResponse.class
 com/proyectocloud/properties/PropertiesApplication.class
 com/proyectocloud/properties/dto/PropertyDtos$PropertyUpdateRequest.class
 com/proyectocloud/properties/entity/Property.class
 com/proyectocloud/properties/dto/PropertyDtos.class
+com/proyectocloud/properties/dto/PropertyDtos$PropertyResponse.class
+com/proyectocloud/properties/dto/PropertyDtos$LocationDto.class
