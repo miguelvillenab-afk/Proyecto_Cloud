@@ -68,7 +68,7 @@ def subir_a_s3(csv_data):
     s3 = boto3.client("s3")
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    key = f"{S3_PREFIX}/usuarios_{timestamp}.csv"
+    key = f"{S3_PREFIX}/usuarios.csv"
 
     print(f"Subiendo archivo a s3://{BUCKET_NAME}/{key} ...")
     s3.put_object(
