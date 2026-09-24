@@ -75,8 +75,8 @@ def reservas_por_ciudad():
         return {
             "mock": True,
             "data": [
-                {"ciudad": "Lima", "total_reservas": 1250},
-                {"ciudad": "Cusco", "total_reservas": 830},
+                {"ciudad": "Lima", "pais": "Perú", "total_reservas": 1250, "ingresos_totales": 187500},
+                {"ciudad": "Cusco", "pais": "Perú", "total_reservas": 830, "ingresos_totales": 124500},
             ],
         }
 
